@@ -18,48 +18,12 @@ HardwareSerial MySerial(2); // Use UART2
 Wiimote wiimote;
 void wiimote_callback(wiimote_event_type_t event_type, uint16_t handle, uint8_t *data, size_t len);
 
-uint8_t static_mac[6];
-
-void generate_unique_mac() {
-  // Get the ESP32's unique chip ID
-  uint64_t chipid = ESP.getEfuseMac();
-  
-  // Create a unique MAC address based on chip ID
-  // Using a custom OUI (first 3 bytes) - make sure it's locally administered
-  static_mac[0] = 0x02;  // Locally administered bit set (bit 1 of first byte)
-  static_mac[1] = 0x00;
-  static_mac[2] = 0x00;
-  
-  // Use parts of the chip ID for the last 3 bytes
-  static_mac[3] = (uint8_t)(chipid >> 16);
-  static_mac[4] = (uint8_t)(chipid >> 8);
-  static_mac[5] = (uint8_t)(chipid);
-  
-  Serial.print("Generated unique MAC address: ");
-  for (int i = 0; i < 6; i++) {
-    if (static_mac[i] < 16) Serial.print("0");
-    Serial.print(static_mac[i], HEX);
-    if (i < 5) Serial.print(":");
-  }
-  Serial.println();
-}
-
-
-
-
 void setup() {
   Serial.begin(115200);
   Serial.println("Wiimote to UART Bridge Starting...");
 
-  
-  generate_unique_mac(); 
-  // Set the new MAC address
-  esp_base_mac_addr_set(static_mac);
-
-
 //  esp_bt_controller_disable();
 //  esp_bt_controller_deinit();
-  delay(1000);
 
   MySerial.begin(UART_BAUD, SERIAL_8N1, UART_RX_PIN, UART_TX_PIN);
   Serial.println("Wiimote to UART Bridge Started...");
@@ -109,41 +73,12 @@ void wiimote_callback(wiimote_event_type_t event_type, uint16_t handle, uint8_t 
   static unsigned long last_uart_send = 0;
 
   switch (event_type) {
-case WIIMOTE_EVENT_CONNECT:
-  Serial.println("event_type=WIIMOTE_EVENT_CONNECT");
-  
-  // Extended initialization sequence
-  delay(500);  // Let connection settle
-  
-  // Cycle through LEDs to ensure communication is working
-  for (int i = 1; i <= 4; i++) {
-    wiimote.set_led(handle, 1 << (i-1));
-    delay(200);
-  }
-  
-  // Brief rumble to "wake up" the device
-  wiimote.set_rumble(handle, true);
-  delay(100);
-  wiimote.set_rumble(handle, false);
-  delay(200);
-  
-  // Set final LED state
-  wiimote.set_led(handle, 1 << connection_count);
-  
-  connection_count++;
-  break;
 
-//    case WIIMOTE_EVENT_CONNECT:
-//      Serial.println("event_type=WIIMOTE_EVENT_CONNECT");
- //     wiimote.set_led(handle, 1 << connection_count);
-//      connection_count++;
-        // Force LED change to trigger communication that might help initialization
-//      delay(100);
-//      wiimote.set_led(handle, 0);
-//      delay(100);  
-//      wiimote.set_led(handle, 1 << connection_count);
-  
-//      break;
+    case WIIMOTE_EVENT_CONNECT:
+      Serial.println("event_type=WIIMOTE_EVENT_CONNECT");
+      wiimote.set_led(handle, 1 << connection_count);
+      connection_count++;
+      break;
 
     case WIIMOTE_EVENT_DISCONNECT:
       Serial.println("event_type=WIIMOTE_EVENT_DISCONNECT");
